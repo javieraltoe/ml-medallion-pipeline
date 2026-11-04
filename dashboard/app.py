@@ -240,6 +240,31 @@ with tab_detail:
             hide_index=True,
             use_container_width=True,
         )
+    st.subheader("Historial de vendedores (dimensión SCD tipo 2)")
+    st.caption(
+        "Cuando un vendedor cambia de nombre o pasa a ser tienda oficial, se cierra su versión "
+        "anterior y se abre una nueva. Los datos históricos siguen apuntando a la versión de ese día."
+    )
+    history = load("seller_history", sites)
+    if history.empty:
+        st.info("Todavía no hay vendedores con cambios registrados.")
+    else:
+        st.dataframe(
+            history.rename(
+                columns={
+                    "seller_id": "Vendedor (id)",
+                    "country": "País",
+                    "seller_sk": "Versión (sk)",
+                    "nickname": "Nombre",
+                    "is_official_store": "Tienda oficial",
+                    "valid_from": "Vigente desde",
+                    "valid_to": "Vigente hasta",
+                    "is_current": "Actual",
+                }
+            ),
+            hide_index=True,
+            use_container_width=True,
+        )
     st.subheader("Mart completo del día")
     st.dataframe(today.drop(columns=["category_group"]), hide_index=True, use_container_width=True)
     st.download_button("⬇️ Descargar CSV", today.to_csv(index=False).encode(), f"mart_{day}.csv", "text/csv")

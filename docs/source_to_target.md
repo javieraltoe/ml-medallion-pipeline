@@ -15,7 +15,7 @@ con qué tipo y con qué regla.
 | `title` | string | `title` | text | `trim`; vacío → cuarentena `titulo_ausente` |
 | `category_id` | string | `category_id` | text | Requerido |
 | `seller.id` | int | `seller_id` | bigint | Nulo → cuarentena `vendedor_ausente` |
-| `seller.nickname` | string | `silver.sellers.nickname` | text | Último valor visto |
+| `seller.nickname` | string | `silver.sellers.nickname` / `silver.seller_daily.nickname` | text | Último valor visto (SCD1) y valor de cada día (fuente del SCD2) |
 | `condition` | string | `condition` | text | `new` / `used` |
 | `listing_type_id` | string | `listing_type_id` | text | — |
 | `attributes[id=BRAND].value_name` | string | `brand` | text | Se busca el atributo `BRAND` |
@@ -42,7 +42,8 @@ en el mismo día se conserva el último recibido (`record_seq` mayor).
 | `snapshot_date` | `date_key` | `YYYYMMDD` entero → `dim_date` |
 | `site_id` | `site_id` | FK a `dim_site` |
 | `category_id` | `category_id` | FK a `dim_category`. Id no conocido → “Sin clasificar (id)”; en modo api se completa con `/categories/{id}` |
-| `seller_id` | `seller_id` | FK a `dim_seller` |
+| `seller_id` + fecha | `seller_sk` | FK a la versión de `dim_seller` vigente ese día (SCD2) |
+| `seller_id` | `seller_id` | Clave natural, se conserva para análisis |
 | `price` | `price_local` | — |
 | `price_usd` | `price_usd` | — |
 | `condition` | `is_new` | `condition = 'new'` |

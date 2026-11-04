@@ -2,6 +2,7 @@
 #   make up        -> levanta todo
 #   http://localhost:8080  (UI de Airflow, sin login en local)
 #   localhost:5433         (warehouse: usuario/clave warehouse)
+#   http://localhost:8501  (dashboard de Gold)
 
 x-airflow-common: &airflow-common
   build: .
@@ -142,6 +143,21 @@ services:
       <<: *airflow-common-depends-on
       airflow-init:
         condition: service_completed_successfully
+
+  # Dashboard sobre la capa Gold -> http://localhost:8501
+  dashboard:
+    build: ./dashboard
+    image: ml-medallion-dashboard:latest
+    environment:
+      WAREHOUSE_DSN: postgresql://warehouse:warehouse@warehouse:5432/warehouse
+    ports:
+      - "${DASHBOARD_PORT:-8501}:8501"
+    volumes:
+      - ./dashboard:/app        # editar app.py y recargar el navegador, sin rebuild
+    depends_on:
+      warehouse:
+        condition: service_healthy
+    restart: unless-stopped
 
 volumes:
   airflow-db:

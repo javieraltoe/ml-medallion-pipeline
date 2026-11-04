@@ -82,3 +82,14 @@ WHEN MATCHED THEN UPDATE SET
     _updated_at = now()
 WHEN NOT MATCHED THEN INSERT (seller_id, site_id, nickname, official_store_id, first_seen_date, last_seen_date)
 VALUES (s.seller_id, s.site_id, s.seller_nickname, s.official_store_id, s.snapshot_date, s.snapshot_date);
+
+-- 6) Atributos del vendedor vistos HOY (fuente del SCD tipo 2 en Gold).
+--    Delete + insert de la partición (fecha, sitio) => idempotente.
+DELETE FROM silver.seller_daily
+WHERE snapshot_date = %(snapshot_date)s AND site_id = %(site_id)s;
+
+INSERT INTO silver.seller_daily (seller_id, snapshot_date, site_id, nickname, is_official_store, _run_id)
+SELECT DISTINCT ON (seller_id)
+       seller_id, snapshot_date, site_id, seller_nickname, official_store_id IS NOT NULL, %(run_id)s
+FROM stg_items
+ORDER BY seller_id, record_seq DESC;

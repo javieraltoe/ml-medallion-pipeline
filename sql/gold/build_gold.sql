@@ -11,14 +11,35 @@ FROM silver.item_snapshots s
 WHERE s.snapshot_date = %(d)s
 ON CONFLICT (category_id) DO NOTHING;
 
--- Dimensión vendedor (SCD1)
-INSERT INTO gold.dim_seller (seller_id, site_id, nickname, is_official_store, first_seen_date)
-SELECT seller_id, site_id, nickname, official_store_id IS NOT NULL, first_seen_date
-FROM silver.sellers
-ON CONFLICT (seller_id) DO UPDATE SET
-    nickname = EXCLUDED.nickname,
-    is_official_store = EXCLUDED.is_official_store,
-    first_seen_date = LEAST(gold.dim_seller.first_seen_date, EXCLUDED.first_seen_date);
+-- ==========================================================================
+-- Dimensión vendedor: SCD TIPO 2 (patrón "expirar + insertar")
+-- Se procesa un día a la vez, en orden (max_active_runs=1 en el DAG).
+-- ==========================================================================
+CREATE TEMP TABLE stg_seller ON COMMIT DROP AS
+SELECT seller_id, site_id, nickname, is_official_store,
+       md5(concat_ws('|', nickname, is_official_store::text)) AS row_hash
+FROM silver.seller_daily
+WHERE snapshot_date = %(d)s;
+
+-- a) Re-ejecución del mismo día con datos distintos: se corrige la versión de ese día.
+UPDATE gold.dim_seller t
+SET nickname = s.nickname, is_official_store = s.is_official_store, row_hash = s.row_hash
+FROM stg_seller s
+WHERE t.seller_id = s.seller_id AND t.is_current
+  AND t.valid_from = %(d)s AND t.row_hash <> s.row_hash;
+
+-- b) Cambió algún atributo: se cierra la versión vigente.
+UPDATE gold.dim_seller t
+SET valid_to = %(d)s, is_current = FALSE
+FROM stg_seller s
+WHERE t.seller_id = s.seller_id AND t.is_current
+  AND t.valid_from < %(d)s AND t.row_hash <> s.row_hash;
+
+-- c) Vendedores nuevos o recién cerrados: se abre una versión vigente.
+INSERT INTO gold.dim_seller (seller_id, site_id, nickname, is_official_store, row_hash, valid_from)
+SELECT s.seller_id, s.site_id, s.nickname, s.is_official_store, s.row_hash, %(d)s
+FROM stg_seller s
+WHERE NOT EXISTS (SELECT 1 FROM gold.dim_seller t WHERE t.seller_id = s.seller_id AND t.is_current);
 
 -- Dimensión fecha
 INSERT INTO gold.dim_date (date_key, full_date, year, quarter, month, day, day_of_week, is_weekend)
@@ -31,14 +52,23 @@ ON CONFLICT (date_key) DO NOTHING;
 -- Hechos
 DELETE FROM gold.fact_item_daily WHERE date_key = TO_CHAR(%(d)s::date, 'YYYYMMDD')::int;
 
+-- Cada hecho apunta a la versión del vendedor VIGENTE ESE DÍA (point-in-time).
+-- Si se hace backfill de una fecha anterior a la primera versión conocida, se usa la más antigua.
 INSERT INTO gold.fact_item_daily (
-    date_key, item_id, site_id, category_id, seller_id, currency_id, price_local, price_usd,
-    discount_pct, available_quantity, free_shipping, is_new, _run_id
+    date_key, item_id, site_id, category_id, seller_sk, seller_id, currency_id, price_local,
+    price_usd, discount_pct, available_quantity, free_shipping, is_new, _run_id
 )
-SELECT TO_CHAR(s.snapshot_date, 'YYYYMMDD')::int, s.item_id, s.site_id, s.category_id, s.seller_id,
-       s.currency_id, s.price, s.price_usd, s.discount_pct, s.available_quantity, s.free_shipping,
-       s.condition = 'new', %(run_id)s
+SELECT TO_CHAR(s.snapshot_date, 'YYYYMMDD')::int, s.item_id, s.site_id, s.category_id, v.seller_sk,
+       s.seller_id, s.currency_id, s.price, s.price_usd, s.discount_pct, s.available_quantity,
+       s.free_shipping, s.condition = 'new', %(run_id)s
 FROM silver.item_snapshots s
+CROSS JOIN LATERAL (
+    SELECT d.seller_sk
+    FROM gold.dim_seller d
+    WHERE d.seller_id = s.seller_id
+    ORDER BY (d.valid_from <= s.snapshot_date AND s.snapshot_date < d.valid_to) DESC, d.valid_from
+    LIMIT 1
+) v
 WHERE s.snapshot_date = %(d)s;
 
 -- Data mart por categoría

@@ -191,13 +191,50 @@ GOLD_CHECKS: list[Check] = [
         "integrity",
         """SELECT count(*) FROM gold.fact_item_daily f
            LEFT JOIN gold.dim_category c ON c.category_id = f.category_id
-           LEFT JOIN gold.dim_seller   v ON v.seller_id   = f.seller_id
+           LEFT JOIN gold.dim_seller   v ON v.seller_sk   = f.seller_sk
            LEFT JOIN gold.dim_site     t ON t.site_id     = f.site_id
            WHERE f.date_key = TO_CHAR(%(d)s::date, 'YYYYMMDD')::int
-             AND (c.category_id IS NULL OR v.seller_id IS NULL OR t.site_id IS NULL)""",
+             AND (c.category_id IS NULL OR v.seller_sk IS NULL OR t.site_id IS NULL)""",
         "eq",
         lambda s: 0,
         description="Toda fila de hechos apunta a dimensiones existentes",
+    ),
+    Check(
+        "gold_scd2_one_current_version",
+        "gold",
+        "uniqueness",
+        """SELECT count(*) FROM (
+               SELECT seller_id FROM gold.dim_seller
+               GROUP BY seller_id HAVING count(*) FILTER (WHERE is_current) <> 1) x""",
+        "eq",
+        lambda s: 0,
+        description="SCD2: cada vendedor tiene exactamente una versión vigente",
+    ),
+    Check(
+        "gold_scd2_no_overlapping_versions",
+        "gold",
+        "consistency",
+        """SELECT count(*) FROM gold.dim_seller a
+           JOIN gold.dim_seller b
+             ON a.seller_id = b.seller_id AND a.seller_sk < b.seller_sk
+            AND a.valid_from < b.valid_to AND b.valid_from < a.valid_to""",
+        "eq",
+        lambda s: 0,
+        description="SCD2: las versiones de un vendedor no se superponen en el tiempo",
+    ),
+    Check(
+        "gold_fact_points_to_valid_seller_version",
+        "gold",
+        "integrity",
+        """SELECT count(*) FROM gold.fact_item_daily f
+           JOIN gold.dim_seller v ON v.seller_sk = f.seller_sk
+           JOIN gold.dim_date d ON d.date_key = f.date_key
+           WHERE f.date_key = TO_CHAR(%(d)s::date, 'YYYYMMDD')::int
+             AND NOT (v.valid_from <= d.full_date AND d.full_date < v.valid_to)
+             AND v.valid_from <= d.full_date""",
+        "eq",
+        lambda s: 0,
+        description="Cada hecho apunta a la versión del vendedor vigente ese día",
     ),
     Check(
         "gold_mart_country_coverage",

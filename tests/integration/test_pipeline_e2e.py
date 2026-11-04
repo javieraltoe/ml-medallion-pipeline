@@ -3,6 +3,7 @@
 WAREHOUSE_DSN=postgresql://warehouse:warehouse@localhost:5433/warehouse pytest -m integration
 """
 
+import json
 import os
 from datetime import date, timedelta
 
@@ -18,7 +19,8 @@ from ml_pipeline import db  # noqa: E402
 from ml_pipeline.config import get_settings  # noqa: E402
 from ml_pipeline.quality import checks, contracts  # noqa: E402
 
-START = date(2026, 10, 1)
+# Rango que incluye cambios de vendedores (tienda oficial el 28/10, cambio de nombre el 30/10)
+START = date(2026, 10, 24)
 DAYS = [START + timedelta(days=i) for i in range(8)]
 
 
@@ -63,3 +65,50 @@ def test_schema_change_stops_the_pipeline(monkeypatch):
     monkeypatch.setenv("ML_SAMPLE_SCENARIO", "schema_break")
     with pytest.raises(contracts.SchemaContractError):
         cli.run_day(DAYS[-1] + timedelta(days=2))
+
+
+def _scalar(sql):
+    with db.connect(get_settings().warehouse_dsn) as conn:
+        return db.fetch_one(conn, sql)[0]
+
+
+def test_scd2_keeps_seller_history():
+    # Hay vendedores con más de una versión...
+    assert (
+        _scalar(
+            "SELECT count(*) FROM (SELECT seller_id FROM gold.dim_seller "
+            "GROUP BY seller_id HAVING count(*) > 1) x"
+        )
+        > 0
+    )
+    # ...y exactamente una versión vigente por vendedor.
+    assert (
+        _scalar(
+            "SELECT count(*) FROM (SELECT seller_id FROM gold.dim_seller "
+            "GROUP BY seller_id HAVING count(*) FILTER (WHERE is_current) <> 1) x"
+        )
+        == 0
+    )
+
+
+def test_scd2_facts_point_to_version_valid_that_day():
+    # Un vendedor que cambió de nombre el 30/10: el 29 se ve el nombre viejo, el 31 el nuevo.
+    rows = _scalar(
+        """SELECT json_agg(json_build_object('d', d.full_date, 'n', v.nickname) ORDER BY d.full_date)
+           FROM gold.fact_item_daily f
+           JOIN gold.dim_seller v ON v.seller_sk = f.seller_sk
+           JOIN gold.dim_date d ON d.date_key = f.date_key
+           WHERE f.seller_id = (SELECT seller_id FROM gold.dim_seller
+                                WHERE nickname LIKE 'TIENDA_%%' LIMIT 1)
+             AND d.full_date IN ('2026-10-29', '2026-10-31')"""
+    )
+    rows = json.loads(rows) if isinstance(rows, str) else rows
+    names = {r["d"]: r["n"] for r in rows}
+    assert names["2026-10-29"].startswith("VENDEDOR_")
+    assert names["2026-10-31"].startswith("TIENDA_")
+
+
+def test_scd2_rerun_of_old_day_does_not_alter_history():
+    before = _scalar("SELECT count(*) FROM gold.dim_seller")
+    cli.run_day(date(2026, 10, 26))
+    assert _scalar("SELECT count(*) FROM gold.dim_seller") == before

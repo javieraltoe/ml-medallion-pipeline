@@ -75,10 +75,11 @@ jobs:
           pytest tests/test_dag_integrity.py -v
 
   docker:
-    name: Build de la imagen y validación de compose
+    name: Build de imágenes y validación de compose
     runs-on: ubuntu-latest
     needs: lint-and-unit
     steps:
       - uses: actions/checkout@v4
       - run: docker compose config -q
       - run: docker build -t ml-medallion-airflow:ci .
+      - run: docker build -t ml-medallion-dashboard:ci ./dashboard

@@ -130,6 +130,17 @@ CREATE TABLE IF NOT EXISTS silver.sellers (
     _updated_at        TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- Atributos del vendedor tal como se vieron cada día: es la fuente del SCD2 de Gold.
+CREATE TABLE IF NOT EXISTS silver.seller_daily (
+    seller_id          BIGINT      NOT NULL,
+    snapshot_date      DATE        NOT NULL,
+    site_id            TEXT        NOT NULL,
+    nickname           TEXT,
+    is_official_store  BOOLEAN     NOT NULL,
+    _run_id            TEXT        NOT NULL,
+    PRIMARY KEY (seller_id, snapshot_date)
+);
+
 -- Registros que no pasan las reglas de negocio: no se pierden, se aíslan.
 CREATE TABLE IF NOT EXISTS silver.items_quarantine (
     snapshot_date   DATE        NOT NULL,
@@ -156,13 +167,24 @@ CREATE TABLE IF NOT EXISTS gold.dim_category (
     category_name  TEXT NOT NULL
 );
 
+-- Dimensión vendedor con historial (SCD tipo 2): una fila por VERSIÓN del vendedor.
+-- Si cambia el nombre o pasa a ser tienda oficial, se cierra la versión vigente
+-- (valid_to) y se abre una nueva. Los hechos apuntan a la versión vigente ese día.
 CREATE TABLE IF NOT EXISTS gold.dim_seller (
-    seller_id          BIGINT  PRIMARY KEY,
+    seller_sk          BIGSERIAL PRIMARY KEY,              -- clave subrogada (una por versión)
+    seller_id          BIGINT  NOT NULL,                   -- clave natural (id de Mercado Libre)
     site_id            TEXT    NOT NULL REFERENCES gold.dim_site (site_id),
     nickname           TEXT,
     is_official_store  BOOLEAN NOT NULL,
-    first_seen_date    DATE    NOT NULL
+    row_hash           TEXT    NOT NULL,                   -- detecta cambios en los atributos
+    valid_from         DATE    NOT NULL,
+    valid_to           DATE    NOT NULL DEFAULT DATE '9999-12-31',
+    is_current         BOOLEAN NOT NULL DEFAULT TRUE,
+    CHECK (valid_from < valid_to)
 );
+-- Garantiza una sola versión vigente por vendedor.
+CREATE UNIQUE INDEX IF NOT EXISTS ux_dim_seller_current ON gold.dim_seller (seller_id) WHERE is_current;
+CREATE INDEX IF NOT EXISTS ix_dim_seller_natural ON gold.dim_seller (seller_id, valid_from);
 
 CREATE TABLE IF NOT EXISTS gold.dim_date (
     date_key     INTEGER PRIMARY KEY,           -- YYYYMMDD
@@ -181,7 +203,8 @@ CREATE TABLE IF NOT EXISTS gold.fact_item_daily (
     item_id             TEXT          NOT NULL,
     site_id             TEXT          NOT NULL REFERENCES gold.dim_site (site_id),
     category_id         TEXT          NOT NULL REFERENCES gold.dim_category (category_id),
-    seller_id           BIGINT        NOT NULL REFERENCES gold.dim_seller (seller_id),
+    seller_sk           BIGINT        NOT NULL REFERENCES gold.dim_seller (seller_sk),
+    seller_id           BIGINT        NOT NULL,             -- clave natural (comodidad para análisis)
     currency_id         TEXT          NOT NULL,
     price_local         NUMERIC(18,2) NOT NULL,
     price_usd           NUMERIC(18,2) NOT NULL,

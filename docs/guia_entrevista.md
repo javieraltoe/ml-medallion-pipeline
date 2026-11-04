@@ -12,18 +12,20 @@
 > si llegan 80% menos filas. Tiene tests unitarios, un test end-to-end contra Postgres y CI en
 > GitHub Actions.”
 
-## Demo de 5 minutos
+## Demo de 5-7 minutos
 
 1. **README** en GitHub: diagrama de arquitectura (10 s).
 2. **Airflow UI** (`localhost:8080`): el DAG con los grupos `bronze` → `silver` → `gold`,
    el mapeo por país y una corrida en verde. Mostrar los reintentos en *Task details*.
-3. **VS Code + SQLTools**: `sql/analysis/consultas_demo.sql`
+3. **Dashboard** (`localhost:8501`): pestaña de comparación de precios → la respuesta de
+   negocio en un gráfico; pestaña de calidad → los controles en verde.
+4. **VS Code + SQLTools**: `sql/analysis/consultas_demo.sql`
    - consulta 1 (mart por país) → el resultado de negocio,
    - consulta 5 (duplicados en Bronze) → “acá estaban, Silver los resolvió”,
    - consulta 7 (controles de calidad).
-4. **Romperlo a propósito:** `make demo-volume-drop` → mostrar el error y la fila en
+5. **Romperlo a propósito:** `make demo-volume-drop` → mostrar el error y la fila en
    `audit.dq_results`. Es el momento más fuerte de la demo.
-5. **Código:** `sql/silver/merge_items.sql` (ROW_NUMBER + MERGE) y `dags/ml_medallion_daily.py`
+6. **Código:** `sql/silver/merge_items.sql` (ROW_NUMBER + MERGE) y `dags/ml_medallion_daily.py`
    (“el DAG sólo orquesta; la lógica se testea sin Airflow”).
 
 ## Dónde está cada tema del simulacro en este repo
@@ -99,5 +101,9 @@ dataset se versiona por rango de `snapshot_date` + `_run_id`.
   la misma forma que la API, permite demos reproducibles y CI sin secretos; el modo `api`
   usa la API real con la misma lógica.
 - **¿Qué pasa si corrés el mismo día dos veces?** Nada cambia: lo prueba un test de integración.
+- **¿Cómo guardás la historia de un cambio en una dimensión?** SCD tipo 2 en
+  `gold.dim_seller`: hash de atributos para detectar cambios, cerrar la versión vigente y abrir
+  una nueva; los hechos apuntan a la versión vigente ese día. Diferencia con SCD1
+  (`silver.sellers`): SCD1 sobrescribe y pierde la historia. Ver `docs/arquitectura.md`.
 - **¿Qué mejorarías?** Parquet/Delta en almacenamiento de objetos, dbt para Gold, alertas a
   Slack, dashboard. Está en “Próximos pasos” del README.

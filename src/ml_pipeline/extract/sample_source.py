@@ -50,6 +50,7 @@ TERMS = {
 POOL_SIZE = 220  # publicaciones "existentes" por sitio y término
 SELLERS_PER_SITE = 45
 SCHEMA_DRIFT_FROM = date(2026, 10, 25)
+SITE_SELLER_OFFSET = {"MLA": 100_000, "MLB": 200_000, "MLM": 300_000}
 
 
 def _rng(*parts: object) -> random.Random:
@@ -66,6 +67,24 @@ def usd_rate(currency_id: str, on: date) -> float:
     days = (on - date(2026, 1, 1)).days
     devaluation = 1 - 0.0004 * days if currency_id == "ARS" else 1.0
     return round(base * devaluation * (1 + drift), 8)
+
+
+# Cambios en los vendedores a lo largo del tiempo (para la dimensión SCD tipo 2):
+#   * 1 de cada 9 vendedores es tienda oficial desde siempre
+#   * otro 1 de cada 9 se convierte en tienda oficial a partir de OFFICIAL_FROM
+#   * 1 de cada 11 cambia su nombre visible a partir de RENAME_FROM
+OFFICIAL_FROM = date(2026, 10, 28)
+RENAME_FROM = date(2026, 10, 30)
+
+
+def _is_official_store(seller_n: int, snapshot: date) -> bool:
+    return seller_n % 9 == 0 or (seller_n % 9 == 1 and snapshot >= OFFICIAL_FROM)
+
+
+def _seller_nickname(site_id: str, seller_n: int, snapshot: date) -> str:
+    if seller_n % 11 == 3 and snapshot >= RENAME_FROM:
+        return f"TIENDA_{site_id}_{seller_n:03d}"
+    return f"VENDEDOR_{site_id}_{seller_n:03d}"
 
 
 def _item(site_id: str, term: str, n: int, snapshot: date) -> dict[str, Any] | None:
@@ -115,10 +134,11 @@ def _item(site_id: str, term: str, n: int, snapshot: date) -> dict[str, Any] | N
         "permalink": f"https://articulo.mercadolibre.example/{item_id}",
         "thumbnail": f"https://http2.mlstatic.example/{item_id}-I.jpg",
         "accepts_mercadopago": True,
-        "official_store_id": stable.choice([None, None, None, 1000 + seller_n]),
+        "official_store_id": (1000 + seller_n) if _is_official_store(seller_n, snapshot) else None,
         "seller": {
-            "id": 100_000 + seller_n * 7919 % 99_991,
-            "nickname": f"VENDEDOR_{site_id}_{seller_n:03d}",
+            # Los ids de vendedor son únicos por sitio (cada país tiene su propio rango).
+            "id": SITE_SELLER_OFFSET[site_id] + seller_n * 7919 % 99_991,
+            "nickname": _seller_nickname(site_id, seller_n, snapshot),
         },
         "shipping": {
             "free_shipping": stable.random() < 0.6,

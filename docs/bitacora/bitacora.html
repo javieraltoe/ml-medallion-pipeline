@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Bitácora del proyecto · Pipeline Medallion Mercado Libre</title>
+<style>
+  @page { size: A4; margin: 22mm 18mm 20mm 18mm; }
+  :root { --ink:#1f2933; --muted:#5f6b7a; --accent:#1f5f99; --soft:#eef3f8; --line:#d5dde6; --ok:#2f7d4f; --warn:#a15c00; }
+  * { box-sizing: border-box; }
+  body { font-family: "Inter","Segoe UI","Helvetica Neue",Arial,sans-serif; color: var(--ink); font-size: 10.5pt; line-height: 1.5; margin: 0; }
+  h1, h2, h3 { color: var(--accent); line-height: 1.25; }
+  h1 { font-size: 21pt; margin: 0 0 6mm; padding-bottom: 3mm; border-bottom: 2px solid var(--accent); page-break-before: always; }
+  h2 { font-size: 13.5pt; margin: 7mm 0 2.5mm; }
+  h3 { font-size: 11.5pt; margin: 5mm 0 2mm; color: var(--ink); }
+  h2, h3 { break-after: avoid; page-break-after: avoid; }
+  p { margin: 0 0 2.6mm; }
+  ul, ol { margin: 0 0 3mm; padding-left: 6mm; }
+  li { margin-bottom: 1mm; }
+  code { font-family: "JetBrains Mono","Consolas","DejaVu Sans Mono",monospace; font-size: 8.8pt; background: var(--soft); padding: 0.3mm 1.2mm; border-radius: 2px; }
+  pre { font-family: "JetBrains Mono","Consolas","DejaVu Sans Mono",monospace; font-size: 8.3pt; line-height: 1.4; background: #f6f8fa; border: 1px solid var(--line); border-left: 3px solid var(--accent); padding: 3mm 4mm; border-radius: 3px; white-space: pre-wrap; page-break-inside: avoid; margin: 0 0 3.5mm; }
+  pre code { background: none; padding: 0; font-size: inherit; }
+  table { width: 100%; border-collapse: collapse; margin: 1mm 0 4mm; font-size: 9.2pt; page-break-inside: avoid; }
+  th { background: var(--accent); color: white; text-align: left; padding: 1.8mm 2.2mm; font-weight: 600; }
+  td { border-bottom: 1px solid var(--line); padding: 1.6mm 2.2mm; vertical-align: top; }
+  tr:nth-child(even) td { background: #fafbfd; }
+  figure { margin: 3mm 0 5mm; text-align: center; page-break-inside: avoid; }
+  figure img { max-width: 100%; border: 1px solid var(--line); border-radius: 3px; }
+  figcaption { font-size: 8.6pt; color: var(--muted); margin-top: 1.5mm; }
+  .box { border: 1px solid var(--line); border-left: 4px solid var(--accent); background: var(--soft); padding: 3mm 4mm; margin: 2mm 0 4mm; border-radius: 3px; page-break-inside: avoid; }
+  .box.ok { border-left-color: var(--ok); background: #eef7f1; }
+  .box.warn { border-left-color: var(--warn); background: #fdf5ea; }
+  .box b.t { display: block; margin-bottom: 1mm; }
+  .tag { display: inline-block; font-size: 8pt; padding: 0.4mm 2mm; border-radius: 8px; background: var(--soft); color: var(--accent); font-weight: 600; }
+  .tag.ok { background: #e2f2e8; color: var(--ok); }
+  .tag.todo { background: #f1f3f5; color: var(--muted); }
+  /* Portada */
+  .cover { height: 250mm; display: flex; flex-direction: column; justify-content: space-between; }
+  .cover .top { margin-top: 30mm; }
+  .cover .kicker { font-size: 11pt; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); }
+  .cover .title { font-size: 30pt; font-weight: 700; color: var(--accent); line-height: 1.15; margin: 4mm 0 5mm; }
+  .cover .subtitle { font-size: 13pt; color: var(--ink); max-width: 150mm; }
+  .cover .stack { margin-top: 10mm; display: flex; flex-wrap: wrap; gap: 2mm; }
+  .cover .stack span { border: 1px solid var(--line); border-radius: 10px; padding: 1mm 3mm; font-size: 9pt; color: var(--muted); }
+  .cover .meta { border-top: 2px solid var(--accent); padding-top: 4mm; font-size: 10pt; color: var(--muted); display: grid; grid-template-columns: 35mm 1fr; row-gap: 1.5mm; }
+  .cover .meta b { color: var(--ink); }
+  .toc { page-break-before: always; }
+  .toc h1 { page-break-before: avoid; }
+  .toc ol { list-style: none; padding: 0; font-size: 11pt; }
+  .toc li { display: flex; justify-content: space-between; border-bottom: 1px dotted var(--line); padding: 2mm 0; }
+  .toc li span:last-child { color: var(--muted); font-size: 9.5pt; }
+  .timeline td:first-child { white-space: nowrap; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<!-- ================================================================ PORTADA -->
+<section class="cover">
+  <div class="top">
+    <div class="kicker">Bitácora técnica del proyecto</div>
+    <div class="title">Pipeline Medallion<br>sobre la API de Mercado Libre</div>
+    <div class="subtitle">De la idea al portfolio: cómo se diseñó, se construyó, se puso en marcha y se fue mejorando un pipeline de datos end-to-end con Airflow, Docker y arquitectura Bronze / Silver / Gold.</div>
+    <div class="stack">
+      <span>Python 3.12</span><span>Apache Airflow 3.1</span><span>Docker Compose</span><span>PostgreSQL 16</span>
+      <span>SQL · MERGE · ventanas</span><span>pandas</span><span>Streamlit + Altair</span><span>pytest</span><span>GitHub Actions</span><span>VS Code</span>
+    </div>
+  </div>
+  <div class="meta">
+    <b>Repositorio</b><span>github.com/javieraltoe/ml-medallion-pipeline</span>
+    <b>Versión</b><span>1.1 · incluye Mejora 1 (SCD tipo 2)</span>
+    <b>Fecha</b><span>Noviembre de 2026</span>
+    <b>Propósito</b><span>Material de portfolio y preparación de entrevistas para Data Engineer</span>
+  </div>
+</section>
+
+<!-- ================================================================ ÍNDICE -->
+<section class="toc">
+  <h1>Contenido</h1>
+  <ol>
+    <li><span>1. Origen y objetivo</span><span>Por qué existe el proyecto</span></li>
+    <li><span>2. Arquitectura y stack</span><span>Visión general</span></li>
+    <li><span>3. Etapa 1 · Construcción del pipeline base</span><span>Bronze, Silver, Gold, calidad, DAG, tests</span></li>
+    <li><span>4. Etapa 2 · Puesta en marcha (GitHub y Docker local)</span><span>Problemas reales y cómo se resolvieron</span></li>
+    <li><span>5. Etapa 3 · Dashboard sobre Gold</span><span>Streamlit en un contenedor</span></li>
+    <li><span>6. Mejora 1 · Historial de vendedores con SCD tipo 2</span><span>Dimensiones lentamente cambiantes</span></li>
+    <li><span>7. Hoja de ruta</span><span>Próximas mejoras</span></li>
+    <li><span>Anexo A · Comandos de operación</span><span>Windows / PowerShell</span></li>
+    <li><span>Anexo B · Temas de entrevista y dónde están en el repo</span><span>Mapa del simulacro</span></li>
+  </ol>
+
+  <h2>Línea de tiempo</h2>
+  <table class="timeline">
+    <tr><th>Etapa</th><th>Qué se logró</th></tr>
+    <tr><td>Origen</td><td>Simulacro de entrevista para una vacante de Data Engineer como guía de los temas a demostrar.</td></tr>
+    <tr><td>Etapa 1</td><td>Pipeline completo: extracción con modo sample/api, Medallion, controles de calidad, DAG de Airflow, tests y CI.</td></tr>
+    <tr><td>Etapa 2</td><td>Repositorio publicado en GitHub y stack funcionando en Docker Desktop (Windows). Primera corrida en verde.</td></tr>
+    <tr><td>Etapa 3</td><td>Dashboard en Streamlit con 4 pestañas sobre la capa Gold, como contenedor propio.</td></tr>
+    <tr><td>Mejora 1</td><td>Dimensión de vendedores con historial (SCD tipo 2) y hechos con referencia <i>point-in-time</i>.</td></tr>
+  </table>
+</section>
+
+<!-- ================================================================ 1 -->
+<h1>1. Origen y objetivo</h1>
+
+<p>El punto de partida fue un <b>simulacro técnico de entrevista</b> para una vacante de Data Engineer: 15 preguntas de opción múltiple, 8 preguntas abiertas y 3 ejercicios prácticos (SQL, Python y Airflow). En lugar de estudiar las respuestas de memoria, la decisión fue construir un proyecto real donde cada tema del simulacro tuviera una implementación concreta para mostrar.</p>
+
+<h2>Requisitos iniciales</h2>
+<ul>
+  <li>Que se pueda abrir y trabajar desde <b>VS Code</b>.</li>
+  <li>Versionado en <b>GitHub</b>, con integración continua.</li>
+  <li>Orquestación con <b>Apache Airflow</b>, todo corriendo en <b>Docker</b>.</li>
+  <li>Arquitectura <b>Medallion</b> (Bronze, Silver, Gold).</li>
+  <li>Fuente de datos real y reconocible: la <b>API de Mercado Libre</b>.</li>
+</ul>
+
+<h2>Pregunta de negocio</h2>
+<div class="box"><b class="t">¿Cuánto cuesta lo mismo en cada país, en dólares, y cómo evoluciona día a día?</b>
+Se toman publicaciones de Argentina (MLA), Brasil (MLB) y México (MLM) para tres búsquedas (celular, notebook, zapatillas). La comparación obliga a resolver problemas típicos de integración: varias monedas, duplicados, datos faltantes y cambios de esquema.</div>
+
+<h2>Una restricción que definió el diseño</h2>
+<p>Desde 2025, Mercado Libre <b>exige un token OAuth 2.0 en todos sus endpoints</b>, incluida la búsqueda pública. Para que el proyecto corra en cualquier máquina (y en una entrevista) sin credenciales, se diseñaron dos modos de extracción:</p>
+<table>
+  <tr><th>Modo</th><th>Uso</th><th>Requiere</th></tr>
+  <tr><td><code>sample</code> (por defecto)</td><td>Demo, CI y entrevistas. Genera datos con la <b>misma forma que la API</b>, determinísticos por fecha y con suciedad realista a propósito.</td><td>Nada</td></tr>
+  <tr><td><code>api</code></td><td>Datos reales desde la API de Mercado Libre.</td><td>App en developers.mercadolibre.com</td></tr>
+</table>
+<p>El resto del pipeline es idéntico en ambos modos: sólo cambia la función de extracción.</p>
+
+<!-- ================================================================ 2 -->
+<h1>2. Arquitectura y stack</h1>
+
+<figure>
+  <img src="img/arquitectura.png" alt="Arquitectura">
+  <figcaption>Figura 1 · Flujo general: extracción → Bronze (lake + tabla) → Silver → Gold, con controles de calidad entre capas.</figcaption>
+</figure>
+
+<table>
+  <tr><th>Capa</th><th>Contenido</th><th>Patrón de carga (idempotente)</th></tr>
+  <tr><td><b>Bronze</b></td><td>JSON crudo tal cual llega, con duplicados y errores. Archivo JSONL en el data lake + tabla <code>bronze.ml_items_raw</code>.</td><td>Delete + insert por partición (fecha, país)</td></tr>
+  <tr><td><b>Silver</b></td><td>Datos tipados, deduplicados, con moneda original, tasa aplicada y precio en USD. Cuarentena para lo inválido.</td><td><code>ROW_NUMBER()</code> + <code>MERGE</code></td></tr>
+  <tr><td><b>Gold</b></td><td>Esquema estrella (<code>fact_item_daily</code> + 4 dimensiones) y data mart por país, categoría y día.</td><td>Delete + insert por fecha · SCD2 en vendedores</td></tr>
+</table>
+
+<h2>Stack y por qué</h2>
+<table>
+  <tr><th>Herramienta</th><th>Rol</th><th>Motivo de la elección</th></tr>
+  <tr><td>Apache Airflow 3.1</td><td>Orquestación</td><td>Estándar de la industria; versión actual con TaskFlow API y dynamic task mapping.</td></tr>
+  <tr><td>Docker Compose</td><td>Entorno</td><td>Todo el stack se levanta con un comando, igual en cualquier máquina.</td></tr>
+  <tr><td>PostgreSQL 16</td><td>Warehouse</td><td>Gratis y local; soporta <code>MERGE</code> y funciones de ventana con SQL estándar portable a Snowflake, BigQuery o Databricks.</td></tr>
+  <tr><td>pandas</td><td>Transformación en Silver</td><td>Aplanado de JSON, reglas de negocio y conversión de moneda testeables sin base de datos.</td></tr>
+  <tr><td>Streamlit + Altair</td><td>Dashboard</td><td>El dashboard queda como código versionado en el repo.</td></tr>
+  <tr><td>pytest + GitHub Actions</td><td>Calidad del código</td><td>Tests unitarios, end-to-end contra Postgres e integridad del DAG en cada push.</td></tr>
+</table>
+
+<h2>Estructura del repositorio</h2>
+<pre><code>dags/ml_medallion_daily.py        DAG: sólo orquestación
+src/ml_pipeline/
+  extract/                        cliente API (OAuth, reintentos) + fuente sintética
+  bronze.py · silver.py · gold.py
+  transform/normalize.py          pandas puro: aplanar, reglas, USD
+  quality/                        contratos de esquema + controles de calidad
+  __main__.py                     CLI: mismo pipeline sin Airflow
+sql/ddl · sql/silver · sql/gold   SQL explícito (MERGE, ventanas, estrella, SCD2)
+dashboard/                        Streamlit sobre Gold
+contracts/ · seeds/ · tests/ · docs/
+docker-compose.yml · Dockerfile · Makefile · .vscode/ · .github/workflows/</code></pre>
+
+<!-- ================================================================ 3 -->
+<h1>3. Etapa 1 · Construcción del pipeline base</h1>
+
+<h2>3.1 Extracción</h2>
+<ul>
+  <li><b>Cliente de la API</b> (<code>extract/ml_client.py</code>): usa un access token o lo renueva con <code>refresh_token</code>. Como los refresh tokens de Mercado Libre son de un solo uso, el nuevo se persiste para la próxima corrida. Reintenta con backoff exponencial ante 429 y 5xx, y respeta la paginación.</li>
+  <li><b>Fuente sintética</b> (<code>extract/sample_source.py</code>): determinística por fecha, para que re-ejecuciones y backfills sean reproducibles. Inyecta a propósito ~3% de duplicados, ~1% de precios nulos, precios en cero, publicaciones en USD dentro de Argentina y un campo nuevo (<code>promotion_tag</code>) desde el 25/10 para simular <i>schema drift</i>.</li>
+  <li><b>Escenarios de demo</b>: <code>volume_drop</code> (llega ~20% del volumen) y <code>schema_break</code> (desaparece el campo <code>price</code>).</li>
+</ul>
+
+<h2>3.2 Bronze: guardar primero, validar después</h2>
+<p>Cada país escribe un archivo JSONL particionado estilo Hive (<code>site_id=MLA/ingestion_date=2026-11-03/</code>) y carga el mismo contenido en <code>bronze.ml_items_raw</code> como JSONB, con <code>payload_hash</code>, <code>source_file</code> y <code>run_id</code> para trazabilidad.</p>
+<div class="box"><b class="t">Decisión de diseño</b>El contrato de esquema se valida <b>después</b> de guardar el crudo. Si el origen cambia, se conserva la evidencia para analizarla, pero la tarea falla y no se contamina Silver.</div>
+
+<h2>3.3 Silver: limpiar, convertir, deduplicar</h2>
+<figure>
+  <img src="img/silver.png" alt="Silver" style="max-height:85mm">
+  <figcaption>Figura 2 · Procesamiento de Silver por país y día.</figcaption>
+</figure>
+<ul>
+  <li><b>Lectura por chunks</b> con cursor del servidor: la memoria no depende del tamaño de la partición.</li>
+  <li><b>Reglas de negocio</b>: id, título, vendedor o categoría ausentes; precio nulo o no positivo; moneda sin tipo de cambio. Lo inválido va a <code>silver.items_quarantine</code> con el motivo.</li>
+  <li><b>Multimoneda</b>: se conserva <code>currency_id</code> y <code>price</code> originales, la tasa aplicada (<code>usd_per_unit</code>, la vigente a la fecha) y <code>price_usd</code>.</li>
+  <li><b>Deduplicación y carga</b>:</li>
+</ul>
+<pre><code>CREATE TEMP TABLE stg_items ON COMMIT DROP AS
+SELECT * FROM (
+    SELECT r.*, ROW_NUMBER() OVER (PARTITION BY r.item_id ORDER BY r.record_seq DESC) AS rn
+    FROM stg_items_raw r
+) d WHERE rn = 1;
+
+MERGE INTO silver.item_snapshots AS t
+USING stg_items AS s
+ON t.item_id = s.item_id AND t.snapshot_date = s.snapshot_date
+WHEN MATCHED THEN UPDATE SET price = s.price, price_usd = s.price_usd, ...
+WHEN NOT MATCHED THEN INSERT (...) VALUES (...);</code></pre>
+
+<h2>3.4 Gold: modelo estrella y data mart</h2>
+<p><code>gold.fact_item_daily</code> tiene grano <b>publicación × día</b> y claves hacia <code>dim_date</code>, <code>dim_site</code>, <code>dim_category</code> y <code>dim_seller</code>. <code>gold.mart_category_daily</code> agrega por país, categoría y día: media, mediana, percentiles 25/75, % con envío gratis y descuento promedio. Las agregaciones se calculan en SQL dentro del warehouse (ELT).</p>
+
+<h2>3.5 Calidad de datos</h2>
+<p>Cada control es una consulta SQL que devuelve un número comparado contra un umbral; los resultados se guardan en <code>audit.dq_results</code>. Si falla un control de severidad <i>error</i>, el DAG se detiene y Gold no se publica.</p>
+<table>
+  <tr><th>Dimensión</th><th>Control</th></tr>
+  <tr><td>Contrato</td><td>Campos requeridos y tipos; campos nuevos generan aviso</td></tr>
+  <tr><td>Unicidad</td><td>Una fila por publicación y día</td></tr>
+  <tr><td>Completitud</td><td>Llegaron todos los países; todo precio tiene USD</td></tr>
+  <tr><td>Validez</td><td>Precio &gt; 0; cuarentena ≤ 10%</td></tr>
+  <tr><td>Consistencia</td><td>Moneda = moneda local del sitio o USD</td></tr>
+  <tr><td>Reconciliación</td><td>Bronze = Silver + cuarentena; Gold = Silver en filas e importes</td></tr>
+  <tr><td>Integridad referencial</td><td>Todo hecho apunta a dimensiones existentes</td></tr>
+  <tr><td>Volumen</td><td>Filas del día vs. promedio de 7 días (caída &gt; 50% falla)</td></tr>
+  <tr><td>Frescura</td><td>Tasa de cambio del mismo día</td></tr>
+</table>
+
+<h2>3.6 Orquestación con Airflow</h2>
+<figure>
+  <img src="img/dag.png" alt="DAG" style="max-height:60mm">
+  <figcaption>Figura 3 · DAG <code>ml_medallion_daily</code> agrupado por capas.</figcaption>
+</figure>
+<ul>
+  <li>Schedule <code>@daily</code>, zona horaria de Argentina, <code>catchup=False</code>, <code>max_active_runs=1</code>.</li>
+  <li><b>2 reintentos con 5 minutos de espera</b>. Los controles de calidad tienen <code>retries=0</code>: un dato malo no se arregla reintentando. Un cambio de esquema lanza <code>AirflowFailException</code>.</li>
+  <li><b>Dynamic task mapping</b>: una instancia por país; agregar Chile es sumar <code>MLC</code> a la configuración.</li>
+  <li>El DAG <b>sólo orquesta</b>: la lógica vive en <code>src/ml_pipeline</code> y se puede ejecutar y testear sin Airflow.</li>
+</ul>
+
+<h2>3.7 Tests, CI y verificación</h2>
+<p>GitHub Actions ejecuta lint (ruff), tests unitarios, un test end-to-end contra un Postgres real, la integridad del DAG con Airflow instalado y el build de las imágenes Docker. Antes de publicar se verificó:</p>
+<table>
+  <tr><th>Prueba</th><th>Resultado</th></tr>
+  <tr><td>Backfill de 15 días</td><td>Todas las corridas en verde; ~1.850 registros crudos y ~1.770 limpios por día</td></tr>
+  <tr><td>Re-ejecutar el mismo día</td><td>Conteos y suma de importes idénticos antes y después (idempotencia)</td></tr>
+  <tr><td>Escenario <code>volume_drop</code></td><td>Detectado: ratio 0,27 contra el umbral de 0,5 → falla el control de volumen</td></tr>
+  <tr><td>Escenario <code>schema_break</code></td><td>Detectado: 100% de registros sin <code>price</code> → falla el contrato; el crudo queda en Bronze</td></tr>
+</table>
+
+<!-- ================================================================ 4 -->
+<h1>4. Etapa 2 · Puesta en marcha (GitHub y Docker local)</h1>
+<p>Esta etapa mostró problemas reales de un primer despliegue. Se documentan porque explicar cómo se diagnosticó y resolvió cada uno es tan valioso en una entrevista como el código.</p>
+
+<h2>4.1 Publicación en GitHub</h2>
+<table>
+  <tr><th>Síntoma</th><th>Causa</th><th>Solución</th></tr>
+  <tr><td><code>repository ... not found</code></td><td><code>git push</code> no crea repositorios.</td><td>Crear el repositorio vacío en github.com y volver a hacer el push.</td></tr>
+  <tr><td><code>! [rejected] main -> main (fetch first)</code></td><td>El repositorio remoto tenía un commit inicial creado desde la web.</td><td>Al ser un repo nuevo sin trabajo propio, se reemplazó con <code>git push --force</code>.</td></tr>
+</table>
+
+<h2>4.2 Docker en Windows</h2>
+<table>
+  <tr><th>Síntoma</th><th>Diagnóstico</th><th>Solución</th></tr>
+  <tr><td><code>localhost:8080</code> rechazaba la conexión</td><td><code>docker compose ps -a</code>: el contenedor <code>warehouse</code> quedó en <i>Created</i> y todo Airflow esperaba que estuviera sano.</td><td>El puerto 5433 estaba ocupado en Windows. Se hizo configurable (<code>WAREHOUSE_PORT</code>) y se usó 15432.</td></tr>
+  <tr><td>"Triggerer" en rojo en la UI</td><td>Ese componente sólo se usa para tareas diferidas, que el proyecto no tiene.</td><td>Ninguna: es esperado. Se omitió para ahorrar memoria.</td></tr>
+</table>
+<p>Con eso, el DAG corrió <b>completo en verde</b> en la primera ejecución.</p>
+
+<h2>4.3 Cómo se revisa cada capa</h2>
+<p>La consulta de resumen de una corrida, desde la tabla de auditoría:</p>
+<pre><code>SELECT step, site_id, rows_in, rows_out, status, finished_at - started_at AS duracion
+FROM audit.pipeline_runs
+WHERE run_date = (SELECT max(run_date) FROM audit.pipeline_runs)
+ORDER BY id;</code></pre>
+<p>Además: los archivos crudos se ven en <code>data/lake/</code> desde VS Code, cada tarea muestra en la pestaña <b>XCom</b> de Airflow las métricas que devolvió, y <code>sql/analysis/consultas_demo.sql</code> reúne las consultas de revisión (duplicados en Bronze, motivos de cuarentena, controles de calidad y linaje de punta a punta).</p>
+
+<!-- ================================================================ 5 -->
+<h1>5. Etapa 3 · Dashboard sobre Gold</h1>
+<p>Con el pipeline funcionando faltaba la cara visible: un dashboard que respondiera la pregunta de negocio. Se eligió <b>Streamlit</b> (en lugar de una herramienta de BI configurada a mano) porque el dashboard queda como código en el repositorio, se levanta con el mismo <code>docker compose</code> y se puede revisar en un pull request.</p>
+
+<h2>5.1 Contenido</h2>
+<table>
+  <tr><th>Pestaña</th><th>Qué muestra</th></tr>
+  <tr><td>Comparación de precios</td><td>Mediana en USD por categoría y país con rango P25–P75; % con envío gratis; descuento promedio.</td></tr>
+  <tr><td>Tendencias</td><td>Evolución diaria del precio mediano y del volumen de publicaciones.</td></tr>
+  <tr><td>Detalle</td><td>Mayores bajas de precio vs. el día anterior, vendedores principales, historial SCD2 y descarga en CSV.</td></tr>
+  <tr><td>Calidad de datos</td><td>Resultado de cada control, Bronze vs. Silver por día, cuarentena por motivo.</td></tr>
+</table>
+
+<figure>
+  <img src="img/dashboard_v1.png" alt="Dashboard">
+  <figcaption>Figura 4 · Primera versión del dashboard corriendo en local.</figcaption>
+</figure>
+
+<h2>5.2 Problemas encontrados y resueltos</h2>
+<ul>
+  <li><b>Puerto 8501 ocupado</b> por otro proyecto en Docker: se hizo configurable (<code>DASHBOARD_PORT</code>) y se usó 8502. Los dos proyectos conviven sin conflicto.</li>
+  <li><b>Bug en los datos de ejemplo</b>, detectado al probar las consultas del dashboard: el mismo id de vendedor aparecía en varios países. Se corrigió asignando un rango de ids por país y se regeneraron los datos.</li>
+  <li><b>Legibilidad</b>: con una sola escala, los accesorios (~US$ 30) quedaban invisibles al lado de las notebooks (~US$ 1.100). Se pasó a un gráfico por categoría con escala propia y se corrigieron etiquetas cortadas y verticales.</li>
+</ul>
+
+<!-- ================================================================ 6 -->
+<h1>6. Mejora 1 · Historial de vendedores con SCD tipo 2</h1>
+<span class="tag ok">Implementada</span>
+
+<h2>6.1 El problema</h2>
+<p>Hasta ahora, si un vendedor cambiaba de nombre o pasaba a ser tienda oficial, la dimensión se <b>sobrescribía</b> (SCD tipo 1). Un reporte de la semana pasada mostraba el nombre de hoy y se perdía la historia: no se podía responder, por ejemplo, "¿cuánto vendían los vendedores <i>antes</i> de ser tienda oficial?".</p>
+
+<table>
+  <tr><th></th><th>SCD tipo 1</th><th>SCD tipo 2</th></tr>
+  <tr><td>Ante un cambio</td><td>Sobrescribe el valor</td><td>Cierra la versión vigente y abre una nueva</td></tr>
+  <tr><td>Historia</td><td>Se pierde</td><td>Se conserva con rango de vigencia</td></tr>
+  <tr><td>Clave en los hechos</td><td>Clave natural</td><td>Clave subrogada de la versión vigente ese día</td></tr>
+  <tr><td>En este proyecto</td><td><code>silver.sellers</code></td><td><code>gold.dim_seller</code></td></tr>
+</table>
+
+<h2>6.2 Diseño</h2>
+<ol>
+  <li><b>Silver registra lo que se vio cada día</b>: nueva tabla <code>silver.seller_daily</code> (vendedor × día con nombre y condición de tienda oficial).</li>
+  <li><b>Gold versiona</b>: <code>gold.dim_seller</code> pasa a tener una fila por versión, con <code>seller_sk</code> (clave subrogada), <code>valid_from</code>, <code>valid_to</code>, <code>is_current</code> y un <code>row_hash</code> de los atributos para detectar cambios.</li>
+  <li><b>Los hechos apuntan a la versión correcta</b>: <code>fact_item_daily.seller_sk</code> es la versión vigente el día del hecho (<i>point-in-time</i>).</li>
+</ol>
+
+<figure>
+  <img src="img/modelo_estrella.png" alt="Modelo estrella" style="max-height:90mm">
+  <figcaption>Figura 5 · Modelo estrella con la dimensión vendedor versionada.</figcaption>
+</figure>
+
+<h2>6.3 Implementación: expirar + insertar</h2>
+<pre><code>-- Atributos del día con un hash para comparar
+CREATE TEMP TABLE stg_seller ON COMMIT DROP AS
+SELECT seller_id, site_id, nickname, is_official_store,
+       md5(concat_ws('|', nickname, is_official_store::text)) AS row_hash
+FROM silver.seller_daily WHERE snapshot_date = :dia;
+
+-- 1) Cambió algo: se cierra la versión vigente
+UPDATE gold.dim_seller t SET valid_to = :dia, is_current = FALSE
+FROM stg_seller s
+WHERE t.seller_id = s.seller_id AND t.is_current
+  AND t.valid_from &lt; :dia AND t.row_hash &lt;&gt; s.row_hash;
+
+-- 2) Vendedores nuevos o recién cerrados: se abre una versión vigente
+INSERT INTO gold.dim_seller (seller_id, site_id, nickname, is_official_store, row_hash, valid_from)
+SELECT s.seller_id, s.site_id, s.nickname, s.is_official_store, s.row_hash, :dia
+FROM stg_seller s
+WHERE NOT EXISTS (SELECT 1 FROM gold.dim_seller t
+                  WHERE t.seller_id = s.seller_id AND t.is_current);</code></pre>
+
+<p>Y en la carga de hechos, la búsqueda de la versión vigente:</p>
+<pre><code>CROSS JOIN LATERAL (
+    SELECT d.seller_sk FROM gold.dim_seller d
+    WHERE d.seller_id = s.seller_id
+    ORDER BY (d.valid_from &lt;= s.snapshot_date AND s.snapshot_date &lt; d.valid_to) DESC, d.valid_from
+    LIMIT 1
+) v</code></pre>
+
+<h2>6.4 Casos borde resueltos</h2>
+<table>
+  <tr><th>Caso</th><th>Comportamiento</th></tr>
+  <tr><td>Re-ejecutar el mismo día con datos distintos</td><td>Se corrige la versión que empezó ese día; no se crea una versión de duración cero.</td></tr>
+  <tr><td>Re-ejecutar un día viejo</td><td>La historia no cambia; los hechos de ese día apuntan a la versión vigente entonces.</td></tr>
+  <tr><td>Dos versiones vigentes por error</td><td>Lo impide un índice único parcial: <code>UNIQUE (seller_id) WHERE is_current</code>.</td></tr>
+  <tr><td>Base de datos de la versión anterior</td><td>Una migración (<code>000_upgrade_legacy.sql</code>) detecta el esquema viejo, elimina las tablas de Gold afectadas y deja que se recreen; Gold se reconstruye desde Silver.</td></tr>
+</table>
+
+<h2>6.5 Datos de ejemplo y resultado</h2>
+<p>Para que haya cambios que versionar, la fuente sintética hace que 1 de cada 9 vendedores pase a ser tienda oficial el 28/10 y 1 de cada 11 cambie su nombre el 30/10. Después de un backfill del 21/10 al 04/11:</p>
+<table>
+  <tr><th>seller_id</th><th>seller_sk</th><th>nickname</th><th>oficial</th><th>valid_from</th><th>valid_to</th><th>vigente</th></tr>
+  <tr><td>107919</td><td>5</td><td>VENDEDOR_MLA_001</td><td>no</td><td>2026-10-21</td><td>2026-10-28</td><td>no</td></tr>
+  <tr><td>107919</td><td>136</td><td>VENDEDOR_MLA_001</td><td>sí</td><td>2026-10-28</td><td>9999-12-31</td><td>sí</td></tr>
+  <tr><td>110875</td><td>7</td><td>VENDEDOR_MLA_014</td><td>no</td><td>2026-10-21</td><td>2026-10-30</td><td>no</td></tr>
+  <tr><td>110875</td><td>151</td><td>TIENDA_MLA_014</td><td>no</td><td>2026-10-30</td><td>9999-12-31</td><td>sí</td></tr>
+</table>
+<p>135 vendedores generaron 162 versiones. Los 7 controles de calidad de Gold pasaron, incluidos los tres nuevos:</p>
+<ul>
+  <li>exactamente una versión vigente por vendedor;</li>
+  <li>sin superposición de rangos de vigencia;</li>
+  <li>cada hecho apunta a la versión válida en su fecha.</li>
+</ul>
+<p>Se agregaron tests end-to-end que verifican que un vendedor renombrado el 30/10 aparece con el nombre viejo en los hechos del 29/10 y con el nuevo en los del 31/10, y que re-ejecutar un día viejo no altera la historia. En el dashboard, la pestaña <b>Detalle</b> muestra el historial de versiones.</p>
+
+<div class="box ok"><b class="t">Cómo contarlo en una entrevista</b>"La dimensión vendedor es SCD tipo 2: detecto cambios con un hash de los atributos, cierro la versión vigente y abro una nueva. Los hechos guardan la clave subrogada de la versión vigente ese día, así los reportes históricos muestran los datos como eran en ese momento. Lo protegí con un índice único parcial y con controles de calidad, y resolví los casos de re-ejecución para que siga siendo idempotente."</div>
+
+<!-- ================================================================ 7 -->
+<h1>7. Hoja de ruta</h1>
+<p>Las mejoras se implementan de a una. Cada una suma un capítulo a esta bitácora.</p>
+<table>
+  <tr><th>#</th><th>Mejora</th><th>Qué demuestra</th><th>Estado</th></tr>
+  <tr><td>1</td><td>Dimensión vendedor con SCD tipo 2</td><td>Modelado dimensional con historia</td><td><span class="tag ok">Hecha</span></td></tr>
+  <tr><td>2</td><td>Silver/Gold en Databricks Free Edition con PySpark y Unity Catalog</td><td>Spark, Delta Lake, gobierno de datos</td><td><span class="tag todo">Pendiente</span></td></tr>
+  <tr><td>3</td><td>Gold con dbt</td><td>Tests declarativos, documentación y linaje automáticos</td><td><span class="tag todo">Pendiente</span></td></tr>
+  <tr><td>4</td><td>Conexión a la API real de Mercado Libre</td><td>OAuth, límites de uso, datos impredecibles</td><td><span class="tag todo">Pendiente</span></td></tr>
+  <tr><td>5</td><td>Bronze en MinIO (S3 local) y formato Parquet</td><td>Arquitectura lakehouse</td><td><span class="tag todo">Pendiente</span></td></tr>
+  <tr><td>6</td><td>Particionado por fecha + análisis con <code>EXPLAIN</code></td><td>Optimización medida antes/después</td><td><span class="tag todo">Pendiente</span></td></tr>
+  <tr><td>7</td><td>Alertas a Slack o email</td><td>Operación y monitoreo</td><td><span class="tag todo">Pendiente</span></td></tr>
+  <tr><td>8</td><td>Linaje con OpenLineage + Marquez</td><td>Linaje visual automático</td><td><span class="tag todo">Pendiente</span></td></tr>
+  <tr><td>9</td><td>Modelo de predicción de bajas de precio</td><td>Datos para IA, separación temporal, sin data leakage</td><td><span class="tag todo">Pendiente</span></td></tr>
+  <tr><td>10</td><td>Deploy en la nube con Terraform</td><td>Infraestructura como código</td><td><span class="tag todo">Pendiente</span></td></tr>
+</table>
+
+<!-- ================================================================ ANEXO A -->
+<h1>Anexo A · Comandos de operación</h1>
+<p>Para Windows / PowerShell, desde la carpeta del proyecto. Con Linux o macOS también se puede usar <code>make</code>.</p>
+<table>
+  <tr><th>Acción</th><th>Comando</th></tr>
+  <tr><td>Levantar todo</td><td><code>docker compose up -d --build</code></td></tr>
+  <tr><td>Ver estado</td><td><code>docker compose ps -a</code></td></tr>
+  <tr><td>Logs del scheduler</td><td><code>docker compose logs -f airflow-scheduler</code></td></tr>
+  <tr><td>Activar el DAG</td><td><code>docker compose exec airflow-scheduler airflow dags unpause ml_medallion_daily</code></td></tr>
+  <tr><td>Backfill</td><td><code>docker compose exec airflow-scheduler airflow backfill create --dag-id ml_medallion_daily --from-date 2026-10-21 --to-date 2026-11-04</code></td></tr>
+  <tr><td>Simular caída de volumen</td><td><code>docker compose exec -e ML_SAMPLE_SCENARIO=volume_drop airflow-scheduler python -m ml_pipeline run --date 2026-11-05</code></td></tr>
+  <tr><td>Consola SQL</td><td><code>docker compose exec warehouse psql -U warehouse -d warehouse</code></td></tr>
+  <tr><td>Reiniciar el dashboard</td><td><code>docker compose restart dashboard</code></td></tr>
+  <tr><td>Apagar (conserva datos)</td><td><code>docker compose down</code></td></tr>
+  <tr><td>Apagar y borrar todo</td><td><code>docker compose down -v</code></td></tr>
+</table>
+
+<h2>Servicios y puertos</h2>
+<table>
+  <tr><th>Servicio</th><th>Dirección</th><th>Variable para cambiar el puerto</th></tr>
+  <tr><td>Airflow</td><td>http://localhost:8080</td><td>—</td></tr>
+  <tr><td>Dashboard</td><td>http://localhost:8502 (por defecto 8501)</td><td><code>DASHBOARD_PORT</code></td></tr>
+  <tr><td>Warehouse</td><td>localhost:15432 (por defecto 5433)</td><td><code>WAREHOUSE_PORT</code></td></tr>
+</table>
+
+<!-- ================================================================ ANEXO B -->
+<h1>Anexo B · Temas de entrevista y dónde están en el repo</h1>
+<table>
+  <tr><th>Tema del simulacro</th><th>Evidencia en el proyecto</th></tr>
+  <tr><td>ETL vs. ELT</td><td>Silver transforma en pandas antes de cargar (ETL); Gold carga y transforma en SQL (ELT)</td></tr>
+  <tr><td>Último registro por entidad</td><td><code>ROW_NUMBER() OVER (PARTITION BY ...)</code> en <code>sql/silver/merge_items.sql</code>; vista <code>gold.vw_latest_item_price</code></td></tr>
+  <tr><td>Archivos grandes con poca memoria</td><td>Lectura por chunks con cursor del servidor (<code>db.iter_chunks</code>)</td></tr>
+  <tr><td>Tareas re-ejecutables</td><td>MERGE, claves únicas y delete + insert por partición; test de idempotencia</td></tr>
+  <tr><td>Validación de unicidad</td><td>Control <code>silver_unique_item_per_day</code></td></tr>
+  <tr><td>Mapeo source-to-target</td><td><code>docs/source_to_target.md</code></td></tr>
+  <tr><td>Multimoneda</td><td>Moneda original + tasa fechada + USD en <code>silver.item_snapshots</code></td></tr>
+  <tr><td>Tabla de hechos</td><td><code>gold.fact_item_daily</code>, grano publicación × día</td></tr>
+  <tr><td>Historia en dimensiones</td><td>SCD tipo 2 en <code>gold.dim_seller</code></td></tr>
+  <tr><td>Data lineage</td><td><code>_run_id</code>, <code>source_file</code>, <code>payload_hash</code>; consulta de linaje Gold → archivo crudo</td></tr>
+  <tr><td>Pipeline en verde con 80% menos filas</td><td>Control de volumen + escenario <code>volume_drop</code> + <code>docs/runbook.md</code></td></tr>
+  <tr><td>Cambio de esquema en el origen</td><td><code>contracts/ml_search_item.json</code> + escenario <code>schema_break</code></td></tr>
+  <tr><td>Airflow: DAG diario con reintentos</td><td><code>dags/ml_medallion_daily.py</code> (2 reintentos, 5 minutos)</td></tr>
+  <tr><td>Databricks y Unity Catalog</td><td><code>docs/databricks.md</code> (se implementa en la Mejora 2)</td></tr>
+  <tr><td>Controles de calidad</td><td><code>src/ml_pipeline/quality/checks.py</code>, tabla <code>audit.dq_results</code></td></tr>
+</table>
+
+</body>
+</html>

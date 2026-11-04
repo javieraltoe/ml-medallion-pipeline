@@ -1,4 +1,5 @@
 -- Consultas para mostrar en una entrevista (abrir con SQLTools en VS Code o `make psql`).
+--docker compose exec warehouse psql -U warehouse -d warehouse
 
 -- 1) Precio mediano en USD por país y categoría (último día cargado)
 SELECT full_date, country, category_name, items, median_price_usd, pct_free_shipping

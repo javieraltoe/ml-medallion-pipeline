@@ -53,11 +53,11 @@ flowchart LR
 |------|--------------|-----------------------------|
 | **Bronze** | JSON crudo tal cual llega, con duplicados y errores. Archivo en el lake + tabla. | *delete + insert* por partición `(fecha, país)` |
 | **Silver** | Datos tipados, deduplicados, con moneda original **y** USD, tasa aplicada y cuarentena de rechazados. | `ROW_NUMBER()` + `MERGE` |
-| **Gold** | Esquema estrella (`fact_item_daily` + 4 dimensiones) y `mart_category_daily` para BI. | *delete + insert* por fecha |
+| **Gold** | Esquema estrella (`fact_item_daily` + 4 dimensiones, vendedor con historial **SCD tipo 2**) y `mart_category_daily` para BI. | *delete + insert* por fecha · SCD2 *expirar + insertar* |
 
 ## Stack
 
-**Python 3.12 · Apache Airflow 3.1 · PostgreSQL 16 · Docker Compose · pandas · SQL (MERGE, window functions) · pytest · GitHub Actions · VS Code**
+**Python 3.12 · Apache Airflow 3.1 · PostgreSQL 16 · Docker Compose · pandas · SQL (MERGE, window functions) · Streamlit + Altair · pytest · GitHub Actions · VS Code**
 
 ## Inicio rápido
 
@@ -73,8 +73,17 @@ make up           # levanta Airflow + warehouse (la primera vez tarda unos minut
 
 1. Abrí **http://localhost:8080** → DAG `ml_medallion_daily` → activalo → ▶ *Trigger*.
 2. Para tener histórico (lo usa el control de volumen): `make backfill`.
-3. Mirá los datos: en VS Code, extensión **SQLTools** → conexión *Warehouse (Docker)* ya
+3. Abrí el **dashboard** en **http://localhost:8501**.
+4. Para consultar con SQL: en VS Code, extensión **SQLTools** → conexión *Warehouse (Docker)* ya
    configurada → abrí `sql/analysis/consultas_demo.sql`.
+
+| Servicio | URL |
+|----------|-----|
+| Airflow | http://localhost:8080 (sin login en local) |
+| Dashboard (Streamlit) | http://localhost:8501 |
+| Warehouse (Postgres) | `localhost:5433` · usuario y clave `warehouse` |
+
+Si algún puerto está ocupado, cambialo en `.env` (`WAREHOUSE_PORT`, `DASHBOARD_PORT`).
 
 Sin Docker, el mismo pipeline corre con la CLI (útil para depurar con breakpoints
 desde VS Code, configuración *“Pipeline: correr un día”*):
@@ -96,6 +105,20 @@ Por eso el pipeline tiene dos modos (variable `ML_SOURCE_MODE` en `.env`):
 
 El resto del pipeline no cambia entre modos: sólo cambia la función de extracción.
 
+## Dashboard
+
+`dashboard/app.py` (Streamlit + Altair) lee sólo la capa **Gold** y la de auditoría:
+
+- **Comparación de precios:** mediana en USD por categoría y país, con rango P25–P75;
+  % con envío gratis y descuento promedio.
+- **Tendencias:** evolución diaria del precio mediano y del volumen de publicaciones.
+- **Detalle:** mayores bajas de precio vs. el día anterior, vendedores principales y
+  descarga del mart en CSV.
+- **Calidad de datos:** resultado de cada control, Bronze vs. Silver por día y registros en
+  cuarentena por motivo.
+
+<!-- Agregá una captura: docs/img/dashboard.png -->
+
 ## Calidad de datos
 
 Cada control es una consulta SQL que devuelve un número comparado contra un umbral. Los
@@ -110,7 +133,8 @@ detiene y **no se publica Gold**.
 | Validez | Precio > 0 · % en cuarentena ≤ 10% |
 | Consistencia | Moneda = moneda local del sitio o USD |
 | Reconciliación | Todo id de Bronze está en Silver o en cuarentena · Gold = Silver en filas **e importes** |
-| Integridad referencial | Todo hecho apunta a dimensiones existentes |
+| Integridad referencial | Todo hecho apunta a dimensiones existentes · y a la versión del vendedor vigente ese día |
+| SCD2 | Una sola versión vigente por vendedor · versiones sin superposición |
 | Volumen | Filas del día vs. promedio de 7 días (una caída > 50% falla) |
 | Frescura | Tasa de cambio del mismo día |
 
@@ -135,6 +159,9 @@ make demo-schema-break   # simula que la API deja de enviar "price"     -> falla
   reintentando. Las tareas de extracción sí (2 reintentos, 5 minutos).
 - **El DAG sólo orquesta.** La lógica vive en `src/ml_pipeline` y se testea sin Airflow.
 - **ELT en Gold.** Las agregaciones se hacen en SQL dentro del warehouse.
+- **Historia de cambios con SCD tipo 2.** Si un vendedor cambia de nombre o pasa a ser tienda
+  oficial, `gold.dim_seller` guarda ambas versiones con su rango de vigencia y cada hecho apunta
+  a la versión vigente ese día.
 - **Linaje a nivel registro.** Cada fila lleva `_run_id`; Bronze guarda `source_file` y
   `payload_hash` (ver consulta 8 de `consultas_demo.sql`).
 
@@ -150,6 +177,7 @@ make demo-schema-break   # simula que la API deja de enviar "price"     -> falla
 │   └── __main__.py                 # CLI (mismo pipeline sin Airflow)
 ├── sql/ddl · sql/silver · sql/gold # SQL explícito (MERGE, ventanas, modelo estrella)
 ├── sql/analysis/consultas_demo.sql
+├── dashboard/                      # Streamlit sobre Gold (contenedor propio)
 ├── contracts/ · seeds/
 ├── tests/unit · tests/integration · tests/test_dag_integrity.py
 ├── docs/                           # arquitectura, mapeo source-to-target, runbook, guía de entrevista
@@ -176,10 +204,10 @@ integridad del DAG con Airflow instalado → build de la imagen Docker.
 - [Cómo conectar la API real de Mercado Libre](docs/mercadolibre_api.md)
 - [Cómo se llevaría a Databricks + Unity Catalog](docs/databricks.md)
 - [Guía para presentarlo en una entrevista](docs/guia_entrevista.md)
+- [**Bitácora del proyecto (PDF)**](docs/bitacora/bitacora.pdf): de la creación a cada mejora. Se regenera con `python docs/bitacora/build_pdf.py`.
 
 ## Próximos pasos
 
 - Mover Bronze a almacenamiento de objetos (MinIO/S3) en formato Parquet/Delta.
 - Transformaciones de Gold con dbt (tests y documentación de linaje automáticos).
 - Alertas a Slack desde `on_failure_callback`.
-- Dashboard en Metabase/Superset sobre `gold.mart_category_daily`.

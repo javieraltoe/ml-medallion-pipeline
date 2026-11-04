@@ -30,3 +30,10 @@ def test_fx_rates_are_positive_and_usd_is_one():
     assert sample_source.usd_rate("USD", DAY) == 1.0
     for cur in ("ARS", "BRL", "MXN"):
         assert sample_source.usd_rate(cur, DAY) > 0
+
+
+def test_sellers_change_over_time_for_scd2():
+    assert sample_source._seller_nickname("MLA", 3, date(2026, 10, 29)).startswith("VENDEDOR_")
+    assert sample_source._seller_nickname("MLA", 3, date(2026, 10, 30)).startswith("TIENDA_")
+    assert not sample_source._is_official_store(1, date(2026, 10, 27))
+    assert sample_source._is_official_store(1, date(2026, 10, 28))
