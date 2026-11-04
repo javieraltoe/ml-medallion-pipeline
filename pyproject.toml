@@ -13,10 +13,16 @@ addopts = "-ra"
 [tool.ruff]
 line-length = 110
 target-version = "py311"
-src = ["src", "dags", "tests"]
+src = ["src", "dags", "tests", "databricks_lakehouse"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "SIM"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["ml_pipeline", "queries"]
+known-first-party = ["ml_pipeline", "queries", "dbx_common"]
+
+[tool.ruff.lint.per-file-ignores]
+# Notebooks de Databricks: spark, dbutils y display los inyecta el runtime;
+# los imports van después de ajustar sys.path.
+"databricks_lakehouse/0*.py" = ["F821", "E402", "I001", "E501"]
+"databricks_lakehouse/99_*.py" = ["F821", "E402"]

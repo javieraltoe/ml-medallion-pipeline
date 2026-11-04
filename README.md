@@ -57,7 +57,7 @@ flowchart LR
 
 ## Stack
 
-**Python 3.12 · Apache Airflow 3.1 · PostgreSQL 16 · Docker Compose · pandas · SQL (MERGE, window functions) · Streamlit + Altair · pytest · GitHub Actions · VS Code**
+**Python 3.12 · Apache Airflow 3.1 · PostgreSQL 16 · Docker Compose · pandas · SQL (MERGE, window functions) · Streamlit + Altair · Databricks (PySpark, Delta Lake, Unity Catalog) · pytest · GitHub Actions · VS Code**
 
 ## Inicio rápido
 
@@ -104,6 +104,13 @@ Por eso el pipeline tiene dos modos (variable `ML_SOURCE_MODE` en `.env`):
 | `api` | Datos reales. | Una app en developers.mercadolibre.com → ver [`docs/mercadolibre_api.md`](docs/mercadolibre_api.md) |
 
 El resto del pipeline no cambia entre modos: sólo cambia la función de extracción.
+
+## Versión Databricks
+
+La carpeta `databricks_lakehouse/` implementa el mismo Medallion en **Databricks Free Edition**:
+PySpark, tablas **Delta** en **Unity Catalog**, `MERGE` con `WHEN NOT MATCHED BY SOURCE`,
+SCD tipo 2 con un único `MERGE`, liquid clustering, un Job de 4 tareas y gobierno (comentarios,
+tags, permisos, vista con datos enmascarados y linaje). Guía: [`docs/databricks.md`](docs/databricks.md).
 
 ## Dashboard
 
@@ -178,6 +185,7 @@ make demo-schema-break   # simula que la API deja de enviar "price"     -> falla
 ├── sql/ddl · sql/silver · sql/gold # SQL explícito (MERGE, ventanas, modelo estrella)
 ├── sql/analysis/consultas_demo.sql
 ├── dashboard/                      # Streamlit sobre Gold (contenedor propio)
+├── databricks_lakehouse/           # mismo pipeline en Databricks: PySpark, Delta, Unity Catalog
 ├── contracts/ · seeds/
 ├── tests/unit · tests/integration · tests/test_dag_integrity.py
 ├── docs/                           # arquitectura, mapeo source-to-target, runbook, guía de entrevista
@@ -202,7 +210,7 @@ integridad del DAG con Airflow instalado → build de la imagen Docker.
 - [Mapeo source-to-target](docs/source_to_target.md)
 - [Runbook: qué hacer cuando algo falla](docs/runbook.md)
 - [Cómo conectar la API real de Mercado Libre](docs/mercadolibre_api.md)
-- [Cómo se llevaría a Databricks + Unity Catalog](docs/databricks.md)
+- [Lakehouse en Databricks + Unity Catalog (paso a paso)](docs/databricks.md)
 - [Guía para presentarlo en una entrevista](docs/guia_entrevista.md)
 - [**Bitácora del proyecto (PDF)**](docs/bitacora/bitacora.pdf): de la creación a cada mejora. Se regenera con `python docs/bitacora/build_pdf.py`.
 

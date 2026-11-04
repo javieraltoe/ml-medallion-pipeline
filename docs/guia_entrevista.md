@@ -44,7 +44,7 @@
 | 8 | Multimoneda | Se conserva `currency_id` + `usd_per_unit` + `price_usd`; tasa por fecha (`silver.fx_rates`) |
 | 9 | Tabla de hechos | `gold.fact_item_daily`: métricas + claves a 4 dimensiones, grano publicación × día |
 | 10 | Data lineage | `_run_id`, `source_file`, `payload_hash`; consulta 8 traza Gold → archivo crudo |
-| 11 | Unity Catalog | `docs/databricks.md` |
+| 11 | Unity Catalog | `databricks_lakehouse/05_gobierno_unity_catalog.py` + guía `docs/databricks.md` |
 | 12 | MERGE | `sql/silver/merge_items.sql`, `sql/silver/merge_fx_rates.sql` |
 | 13 | Pipeline OK pero 80% menos filas | Control `silver_volume_vs_7d_avg` + `make demo-volume-drop` + `docs/runbook.md` |
 | 14 | Data leakage | Snapshots diarios fechados: para entrenar un modelo se corta por `snapshot_date` (ver abajo) |
@@ -74,7 +74,7 @@ backfill. **Ser honesto:** “lo usé en este proyecto con Airflow 3 en Docker�
 reglas por campo, cuarentena, reconciliación de conteos e importes, ejecución idempotente
 que permite pilotos y re-ejecuciones antes del cutover.
 
-**6. Databricks y Unity Catalog.** `docs/databricks.md`.
+**6. Databricks y Unity Catalog.** Implementado en `databricks_lakehouse/`: PySpark, Delta, `MERGE`, SCD2, Job y gobierno en Unity Catalog. El guion para contarlo está al final de `docs/databricks.md`.
 
 **7. Controles de calidad.** Tabla en el README: contrato, unicidad, completitud, validez,
 consistencia, reconciliación, integridad referencial, volumen y frescura, con umbrales,
