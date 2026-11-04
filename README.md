@@ -1,6 +1,6 @@
 # Mercado Libre · Pipeline Medallion con Airflow y Docker
 
-![CI](https://github.com/TU_USUARIO/ml-medallion-pipeline/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/javieraltoe/ml-medallion-pipeline/actions/workflows/ci.yml/badge.svg)
 ![Python](https://img.shields.io/badge/python-3.12-blue)
 ![Airflow](https://img.shields.io/badge/airflow-3.1-017CEE)
 ![Postgres](https://img.shields.io/badge/postgres-16-336791)
@@ -65,7 +65,7 @@ Requisitos: Docker Desktop (o Docker Engine + Compose), Python 3.11+ y `make`.
 En Windows, usar WSL2.
 
 ```bash
-git clone https://github.com/TU_USUARIO/ml-medallion-pipeline.git
+git clone https://github.com/javieraltoe/ml-medallion-pipeline.git
 cd ml-medallion-pipeline
 make setup        # crea .env y el entorno virtual
 make up           # levanta Airflow + warehouse (la primera vez tarda unos minutos)
