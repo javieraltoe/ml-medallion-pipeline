@@ -16,10 +16,11 @@
       "name": "Warehouse (Docker)",
       "driver": "PostgreSQL",
       "server": "localhost",
-      "port": 5433,
+      "port": 15432,
       "database": "warehouse",
       "username": "warehouse",
       "password": "warehouse"
     }
-  ]
+  ],
+  "python.terminal.useEnvFile": true
 }

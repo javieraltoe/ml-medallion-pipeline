@@ -72,7 +72,7 @@ services:
       POSTGRES_PASSWORD: warehouse
       POSTGRES_DB: warehouse
     ports:
-      - "5433:5432"
+      - "${WAREHOUSE_PORT:-5433}:5432"
     volumes:
       - warehouse-db:/var/lib/postgresql/data
     healthcheck:
