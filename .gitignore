@@ -1,0 +1,20 @@
+# Secretos
+.env
+config/*.json
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.ruff_cache/
+
+# Datos y logs generados
+data/lake/*
+!data/lake/.gitkeep
+logs/*
+!logs/.gitkeep
+
+# IDE / SO
+.DS_Store
+.idea/

@@ -1,0 +1,26 @@
+-- Tabla temporal por sesión: cada tarea (sitio) en paralelo tiene la suya.
+CREATE TEMP TABLE stg_items_raw (
+    record_seq          INTEGER,
+    item_id             TEXT,
+    snapshot_date       DATE,
+    site_id             TEXT,
+    search_term         TEXT,
+    title               TEXT,
+    category_id         TEXT,
+    seller_id           BIGINT,
+    seller_nickname     TEXT,
+    condition           TEXT,
+    listing_type_id     TEXT,
+    brand               TEXT,
+    currency_id         TEXT,
+    price               NUMERIC(18,2),
+    original_price      NUMERIC(18,2),
+    usd_per_unit        NUMERIC(20,10),
+    price_usd           NUMERIC(18,2),
+    discount_pct        NUMERIC(6,2),
+    available_quantity  INTEGER,
+    free_shipping       BOOLEAN,
+    logistic_type       TEXT,
+    official_store_id   BIGINT,
+    permalink           TEXT
+) ON COMMIT DROP;

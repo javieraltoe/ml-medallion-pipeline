@@ -1,0 +1,148 @@
+# Stack local: Airflow 3 (LocalExecutor) + Postgres de metadatos + Postgres "warehouse".
+#   make up        -> levanta todo
+#   http://localhost:8080  (UI de Airflow, sin login en local)
+#   localhost:5433         (warehouse: usuario/clave warehouse)
+
+x-airflow-common: &airflow-common
+  build: .
+  image: ml-medallion-airflow:latest
+  environment: &airflow-common-env
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+    AIRFLOW__CORE__FERNET_KEY: ""
+    AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "true"
+    AIRFLOW__CORE__DEFAULT_TIMEZONE: America/Argentina/Buenos_Aires
+    AIRFLOW__CORE__EXECUTION_API_SERVER_URL: http://airflow-apiserver:8080/execution/
+    # Local: UI sin login. En producción usar FAB / Keycloak / SSO.
+    AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_ALL_ADMINS: "true"
+    AIRFLOW__API_AUTH__JWT_SECRET: ${AIRFLOW_JWT_SECRET:-local-dev-only-change-me}
+    AIRFLOW__API__SECRET_KEY: ${AIRFLOW_JWT_SECRET:-local-dev-only-change-me}
+    AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: "true"
+    PYTHONPATH: /opt/airflow/src
+    # --- Pipeline ---
+    WAREHOUSE_DSN: postgresql://warehouse:warehouse@warehouse:5432/warehouse
+    LAKE_ROOT: /opt/airflow/data/lake
+    ML_SOURCE_MODE: ${ML_SOURCE_MODE:-sample}
+    ML_SITES: ${ML_SITES:-MLA,MLB,MLM}
+    ML_SEARCH_TERMS: ${ML_SEARCH_TERMS:-celular,notebook,zapatillas}
+    ML_MAX_ITEMS_PER_TERM: ${ML_MAX_ITEMS_PER_TERM:-200}
+    ML_CLIENT_ID: ${ML_CLIENT_ID:-}
+    ML_CLIENT_SECRET: ${ML_CLIENT_SECRET:-}
+    ML_REFRESH_TOKEN: ${ML_REFRESH_TOKEN:-}
+    ML_ACCESS_TOKEN: ${ML_ACCESS_TOKEN:-}
+    ML_TOKEN_CACHE: /opt/airflow/config/ml_token.json
+    ML_SAMPLE_SCENARIO: ${ML_SAMPLE_SCENARIO:-}
+  volumes:
+    - ./dags:/opt/airflow/dags
+    - ./src:/opt/airflow/src
+    - ./sql:/opt/airflow/sql
+    - ./contracts:/opt/airflow/contracts
+    - ./seeds:/opt/airflow/seeds
+    - ./data:/opt/airflow/data
+    - ./logs:/opt/airflow/logs
+    - ./config:/opt/airflow/config
+  user: "${AIRFLOW_UID:-50000}:0"
+  depends_on: &airflow-common-depends-on
+    postgres:
+      condition: service_healthy
+    warehouse:
+      condition: service_healthy
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - airflow-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow"]
+      interval: 10s
+      retries: 5
+      start_period: 5s
+    restart: unless-stopped
+
+  warehouse:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: warehouse
+      POSTGRES_PASSWORD: warehouse
+      POSTGRES_DB: warehouse
+    ports:
+      - "5433:5432"
+    volumes:
+      - warehouse-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "warehouse"]
+      interval: 10s
+      retries: 5
+      start_period: 5s
+    restart: unless-stopped
+
+  airflow-init:
+    <<: *airflow-common
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        mkdir -p /opt/airflow/logs /opt/airflow/data/lake /opt/airflow/config
+        chown -R "${AIRFLOW_UID:-50000}:0" /opt/airflow/logs /opt/airflow/data /opt/airflow/config
+        exec /entrypoint airflow version
+    environment:
+      <<: *airflow-common-env
+      _AIRFLOW_DB_MIGRATE: "true"
+    user: "0:0"
+
+  airflow-apiserver:
+    <<: *airflow-common
+    command: api-server
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/api/v2/version"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    depends_on:
+      <<: *airflow-common-depends-on
+      airflow-init:
+        condition: service_completed_successfully
+
+  airflow-scheduler:
+    <<: *airflow-common
+    command: scheduler
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8974/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    depends_on:
+      <<: *airflow-common-depends-on
+      airflow-init:
+        condition: service_completed_successfully
+
+  airflow-dag-processor:
+    <<: *airflow-common
+    command: dag-processor
+    healthcheck:
+      test: ["CMD-SHELL", 'airflow jobs check --job-type DagProcessorJob --hostname "$${HOSTNAME}"']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    depends_on:
+      <<: *airflow-common-depends-on
+      airflow-init:
+        condition: service_completed_successfully
+
+volumes:
+  airflow-db:
+  warehouse-db:

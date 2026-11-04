@@ -1,0 +1,84 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  AIRFLOW_VERSION: "3.1.0"
+  PYTHON_VERSION: "3.12"
+
+jobs:
+  lint-and-unit:
+    name: Lint + tests unitarios
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+      - run: pip install -r requirements-dev.txt
+      - run: ruff check .
+      - run: ruff format --check .
+      - run: pytest -m "not integration"
+
+  integration:
+    name: End-to-end contra Postgres
+    runs-on: ubuntu-latest
+    needs: lint-and-unit
+    services:
+      warehouse:
+        image: postgres:16
+        env:
+          POSTGRES_USER: warehouse
+          POSTGRES_PASSWORD: warehouse
+          POSTGRES_DB: warehouse
+        ports: ["5433:5432"]
+        options: >-
+          --health-cmd "pg_isready -U warehouse" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      WAREHOUSE_DSN: postgresql://warehouse:warehouse@localhost:5433/warehouse
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+      - run: pip install -r requirements-dev.txt
+      - run: pytest -m integration -v
+
+  dag-integrity:
+    name: Integridad del DAG (Airflow)
+    runs-on: ubuntu-latest
+    needs: lint-and-unit
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Instalar Airflow con constraints oficiales
+        run: |
+          pip install "apache-airflow==${AIRFLOW_VERSION}" \
+            --constraint "https://raw.githubusercontent.com/apache/airflow/constraints-${AIRFLOW_VERSION}/constraints-${PYTHON_VERSION}.txt"
+          pip install -r requirements-dev.txt
+      - name: Test de DAGs
+        env:
+          PYTHONPATH: src
+        run: |
+          airflow db migrate
+          pytest tests/test_dag_integrity.py -v
+
+  docker:
+    name: Build de la imagen y validación de compose
+    runs-on: ubuntu-latest
+    needs: lint-and-unit
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker compose config -q
+      - run: docker build -t ml-medallion-airflow:ci .

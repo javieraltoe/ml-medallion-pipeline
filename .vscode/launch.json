@@ -1,0 +1,30 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Pipeline: correr un día (sin Airflow)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "ml_pipeline",
+      "args": ["run", "--date", "${input:runDate}"],
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/src",
+        "WAREHOUSE_DSN": "postgresql://warehouse:warehouse@localhost:5433/warehouse",
+        "LAKE_ROOT": "${workspaceFolder}/data/lake"
+      },
+      "justMyCode": true
+    },
+    {
+      "name": "Tests unitarios",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "pytest",
+      "args": ["-m", "not integration", "-v"],
+      "cwd": "${workspaceFolder}"
+    }
+  ],
+  "inputs": [
+    { "id": "runDate", "type": "promptString", "description": "Fecha (YYYY-MM-DD)", "default": "2026-11-03" }
+  ]
+}

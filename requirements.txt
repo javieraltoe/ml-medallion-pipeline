@@ -1,0 +1,4 @@
+# Dependencias de runtime del pipeline (Airflow ya trae las suyas en la imagen).
+pandas>=2.2
+requests>=2.32
+psycopg2-binary>=2.9

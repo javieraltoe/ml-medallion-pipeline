@@ -1,0 +1,13 @@
+{
+  "recommendations": [
+    "ms-python.python",
+    "ms-python.vscode-pylance",
+    "charliermarsh.ruff",
+    "ms-azuretools.vscode-containers",
+    "mtxr.sqltools",
+    "mtxr.sqltools-driver-pg",
+    "github.vscode-github-actions",
+    "bierner.markdown-mermaid",
+    "redhat.vscode-yaml"
+  ]
+}

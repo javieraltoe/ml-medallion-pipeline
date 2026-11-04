@@ -1,0 +1,19 @@
+[project]
+name = "ml-medallion-pipeline"
+version = "1.0.0"
+description = "Pipeline Medallion (Bronze/Silver/Gold) sobre la API de Mercado Libre con Airflow y Docker"
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+markers = ["integration: requiere un Postgres (WAREHOUSE_DSN)"]
+addopts = "-ra"
+
+[tool.ruff]
+line-length = 110
+target-version = "py311"
+src = ["src", "dags", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM"]

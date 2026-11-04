@@ -1,0 +1,26 @@
+{
+  "name": "ml_search_item",
+  "version": "1.1.0",
+  "description": "Contrato del ítem devuelto por GET /sites/{site_id}/search. Si el origen cambia el esquema, el pipeline falla ANTES de propagar a Silver.",
+  "owner": "data-engineering",
+  "max_violation_ratio": 0.05,
+  "fields": {
+    "id":                 {"type": "string",  "required": true},
+    "site_id":            {"type": "string",  "required": true},
+    "title":              {"type": "string",  "required": true},
+    "price":              {"type": "number",  "required": true, "nullable": true},
+    "currency_id":        {"type": "string",  "required": true},
+    "category_id":        {"type": "string",  "required": true},
+    "available_quantity": {"type": "integer", "required": true},
+    "condition":          {"type": "string",  "required": false},
+    "seller":             {"type": "object",  "required": true},
+    "shipping":           {"type": "object",  "required": false},
+    "original_price":     {"type": "number",  "required": false, "nullable": true},
+    "listing_type_id":    {"type": "string",  "required": false},
+    "permalink":          {"type": "string",  "required": false},
+    "thumbnail":          {"type": "string",  "required": false},
+    "accepts_mercadopago":{"type": "boolean", "required": false},
+    "official_store_id":  {"type": "integer", "required": false, "nullable": true},
+    "attributes":         {"type": "array",   "required": false}
+  }
+}
